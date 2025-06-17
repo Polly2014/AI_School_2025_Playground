@@ -91,7 +91,7 @@ if DALLE_API_KEY and DALLE_ENDPOINT:
         logger.error(f"Failed to initialize DALL-E client: {str(e)}")
         dalle_client = None
 
-# WebSocket connection manager
+# WebSocket connection manager and session storage
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
@@ -112,7 +112,36 @@ class ConnectionManager:
         for connection in self.active_connections.values():
             await connection.send_text(message)
 
+# Session storage for conversation history
+class SessionManager:
+    def __init__(self):
+        self.sessions: Dict[str, List[Dict[str, str]]] = {}
+    
+    def get_conversation_history(self, session_id: str) -> List[Dict[str, str]]:
+        """Get conversation history for a session"""
+        return self.sessions.get(session_id, [])
+    
+    def add_message(self, session_id: str, role: str, content: str):
+        """Add a message to session history"""
+        if session_id not in self.sessions:
+            self.sessions[session_id] = []
+        
+        self.sessions[session_id].append({
+            "role": role,
+            "content": content
+        })
+        
+        # Keep only last 20 messages to prevent memory issues
+        if len(self.sessions[session_id]) > 20:
+            self.sessions[session_id] = self.sessions[session_id][-20:]
+    
+    def clear_session(self, session_id: str):
+        """Clear conversation history for a session"""
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+
 manager = ConnectionManager()
+session_manager = SessionManager()
 
 # Pydantic models for request/response
 class ChatRequest(BaseModel):
@@ -159,13 +188,21 @@ async def get_home(request: Request):
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """Handle text chat requests"""
+    """Handle text chat requests with conversation history"""
     try:
         # Generate system prompt based on profile
         system_prompt = profile_model.get_personality_prompt()
         
         # Create session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
+        
+        # Get conversation history for this session
+        conversation_history = session_manager.get_conversation_history(session_id)
+        
+        # Build messages array with system prompt, history, and current message
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(conversation_history)
+        messages.append({"role": "user", "content": request.message})
         
         # Call LLM API
         async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
@@ -176,10 +213,7 @@ async def chat(request: ChatRequest):
                     headers={"Authorization": f"Bearer {API_KEY}"},
                     json={
                         "model": TEXT_MODEL,
-                        "messages": [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": request.message}
-                        ],
+                        "messages": messages,
                         "max_tokens": MAX_TOKENS
                     }
                 )
@@ -187,23 +221,49 @@ async def chat(request: ChatRequest):
                 # For demo purposes, simulate a response if API call fails
                 if response.status_code != 200:
                     logger.warning(f"API call failed with status {response.status_code}. Using simulated response.")
-                    # Simulate a response based on the personality
+                    # Simulate a contextual response based on the personality and history
+                    context_info = ""
+                    if len(conversation_history) > 0:
+                        context_info = f" I can see we've been chatting, and you previously mentioned: '{conversation_history[-1].get('content', '')[:50]}...'"
+                    
+                    assistant_reply = f"I'm {profile_model.get_name()}, your AI assistant.{context_info} Regarding '{request.message}', I'm currently in demo mode. In a real implementation, I would connect to an LLM API to generate a personalized response based on our conversation history."
+                    
+                    # Store the conversation
+                    session_manager.add_message(session_id, "user", request.message)
+                    session_manager.add_message(session_id, "assistant", assistant_reply)
+                    
                     return ChatResponse(
-                        reply=f"I'm {profile_model.get_name()}, your AI assistant. I'd love to help you with '{request.message}', but I'm currently in demo mode. In a real implementation, I would connect to an LLM API to generate a personalized response.",
+                        reply=assistant_reply,
                         session_id=session_id
                     )
                 
                 result = response.json()
+                assistant_reply = result["choices"][0]["message"]["content"]
+                
+                # Store the conversation
+                session_manager.add_message(session_id, "user", request.message)
+                session_manager.add_message(session_id, "assistant", assistant_reply)
+                
                 return ChatResponse(
-                    reply=result["choices"][0]["message"]["content"],
+                    reply=assistant_reply,
                     session_id=session_id
                 )
                 
             except Exception as e:
                 logger.error(f"Error calling LLM API: {str(e)}")
-                # Fallback response for demo
+                # Fallback response for demo with context
+                context_info = ""
+                if len(conversation_history) > 0:
+                    context_info = f" I remember our conversation history, including your previous message about '{conversation_history[-1].get('content', '')[:50]}...'"
+                
+                assistant_reply = f"I'm {profile_model.get_name()}, your AI assistant.{context_info} I'd love to help you with '{request.message}', but I'm currently in demo mode. In a real implementation, I would connect to an LLM API to generate a personalized response based on our conversation history."
+                
+                # Store the conversation
+                session_manager.add_message(session_id, "user", request.message)
+                session_manager.add_message(session_id, "assistant", assistant_reply)
+                
                 return ChatResponse(
-                    reply=f"I'm {profile_model.get_name()}, your AI assistant. I'd love to help you with '{request.message}', but I'm currently in demo mode. In a real implementation, I would connect to an LLM API to generate a personalized response.",
+                    reply=assistant_reply,
                     session_id=session_id
                 )
                 
@@ -381,6 +441,16 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
+
+@app.delete("/api/chat/{session_id}")
+async def clear_chat_history(session_id: str):
+    """Clear conversation history for a session"""
+    try:
+        session_manager.clear_session(session_id)
+        return {"message": "Chat history cleared successfully", "session_id": session_id}
+    except Exception as e:
+        logger.error(f"Error clearing chat history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

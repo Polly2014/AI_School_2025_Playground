@@ -80,15 +80,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // Clear chat
-        clearChatBtn.addEventListener('click', () => {
-            // Remove all messages except the first one (welcome message)
-            const messages = chatMessages.querySelectorAll('.message');
-            for (let i = 1; i < messages.length; i++) {
-                messages[i].remove();
+        clearChatBtn.addEventListener('click', async () => {
+            try {
+                // Clear chat history on backend
+                await fetch(`/api/chat/${sessionId}`, {
+                    method: 'DELETE'
+                });
+                
+                // Remove all messages except the first one (welcome message)
+                const messages = chatMessages.querySelectorAll('.message');
+                for (let i = 1; i < messages.length; i++) {
+                    messages[i].remove();
+                }
+                
+                // Generate new session ID
+                sessionId = generateSessionId();
+                
+                console.log('Chat history cleared and new session started:', sessionId);
+            } catch (error) {
+                console.error('Error clearing chat history:', error);
+                // Still clear the UI even if backend call fails
+                const messages = chatMessages.querySelectorAll('.message');
+                for (let i = 1; i < messages.length; i++) {
+                    messages[i].remove();
+                }
+                sessionId = generateSessionId();
             }
-            
-            // Generate new session ID
-            sessionId = generateSessionId();
         });
         
         // Menu navigation
