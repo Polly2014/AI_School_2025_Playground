@@ -13,6 +13,7 @@ import uuid
 from pydantic import BaseModel
 import logging
 from dotenv import load_dotenv
+from openai import AzureOpenAI
 from models.profile_model import ProfileModel
 
 # Load environment variables
@@ -62,11 +63,33 @@ SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 SERVER_PORT = int(os.getenv("SERVER_PORT", "8000"))
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
+# DALL-E Configuration
+DALLE_ENDPOINT = os.getenv("DALLE_ENDPOINT")
+DALLE_API_VERSION = os.getenv("DALLE_API_VERSION", "2024-04-01-preview")
+DALLE_DEPLOYMENT = os.getenv("DALLE_DEPLOYMENT", "dall-e-3")
+DALLE_API_KEY = os.getenv("DALLE_API_KEY", API_KEY)  # Use same key if not specified
+
 # Validate required configuration
 if not API_KEY:
     logger.warning("LLM_API_KEY not found in environment variables. API calls will use demo mode.")
 if not LLM_API_ENDPOINT:
     logger.warning("LLM_API_ENDPOINT not found in environment variables. API calls will use demo mode.")
+if not DALLE_ENDPOINT:
+    logger.warning("DALLE_ENDPOINT not found in environment variables. Image generation will use demo mode.")
+
+# Initialize DALL-E client
+dalle_client = None
+if DALLE_API_KEY and DALLE_ENDPOINT:
+    try:
+        dalle_client = AzureOpenAI(
+            api_version=DALLE_API_VERSION,
+            azure_endpoint=DALLE_ENDPOINT,
+            api_key=DALLE_API_KEY,
+        )
+        logger.info("DALL-E client initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize DALL-E client: {str(e)}")
+        dalle_client = None
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -103,6 +126,18 @@ class ChatResponse(BaseModel):
 class ImageAnalysisRequest(BaseModel):
     prompt: Optional[str] = "Please describe this image in detail."
     session_id: Optional[str] = None
+
+class ImageGenerationRequest(BaseModel):
+    prompt: str
+    style: Optional[str] = "vivid"  # "vivid" or "natural"
+    quality: Optional[str] = "standard"  # "standard" or "hd"
+    size: Optional[str] = "1024x1024"  # "1024x1024", "1792x1024", or "1024x1792"
+    session_id: Optional[str] = None
+
+class ImageGenerationResponse(BaseModel):
+    image_url: str
+    session_id: str
+    prompt_used: str
 
 # Routes
 @app.get("/", response_class=HTMLResponse)
@@ -241,6 +276,64 @@ async def analyze_image(
         logger.error(f"Error in image analysis endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/image-generation", response_model=ImageGenerationResponse)
+async def generate_image(request: ImageGenerationRequest):
+    """Handle image generation requests using DALL-E"""
+    try:
+        # Generate system prompt based on profile for enhancing user prompt
+        system_prompt = profile_model.get_personality_prompt()
+        
+        # Create session ID if not provided
+        session_id = request.session_id or str(uuid.uuid4())
+        
+        # Enhance the prompt using the assistant's personality
+        enhanced_prompt = f"Based on my personality as {profile_model.get_name()}, I'll generate an image with this description: {request.prompt}"
+        
+        if dalle_client:
+            try:
+                # Generate image using DALL-E
+                result = dalle_client.images.generate(
+                    model=DALLE_DEPLOYMENT,
+                    prompt=request.prompt,
+                    n=1,
+                    style=request.style,
+                    quality=request.quality,
+                    size=request.size
+                )
+                
+                # Extract image URL from response
+                image_data = json.loads(result.model_dump_json())
+                image_url = image_data['data'][0]['url']
+                
+                logger.info(f"Image generated successfully for prompt: {request.prompt[:50]}...")
+                
+                return ImageGenerationResponse(
+                    image_url=image_url,
+                    session_id=session_id,
+                    prompt_used=request.prompt
+                )
+                
+            except Exception as e:
+                logger.error(f"Error calling DALL-E API: {str(e)}")
+                # Fallback response for demo
+                return ImageGenerationResponse(
+                    image_url="https://via.placeholder.com/1024x1024/4A90E2/FFFFFF?text=Image+Generation+Demo+Mode",
+                    session_id=session_id,
+                    prompt_used=request.prompt
+                )
+        else:
+            # Demo mode response
+            logger.info("DALL-E client not available, using demo mode")
+            return ImageGenerationResponse(
+                image_url=f"https://via.placeholder.com/1024x1024/4A90E2/FFFFFF?text=Generated:+{request.prompt.replace(' ', '+')[:20]}",
+                session_id=session_id,
+                prompt_used=request.prompt
+            )
+                
+    except Exception as e:
+        logger.error(f"Error in image generation endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     """WebSocket endpoint for real-time chat"""
@@ -296,5 +389,5 @@ if __name__ == "__main__":
         app, 
         host=SERVER_HOST, 
         port=SERVER_PORT,
-        debug=DEBUG_MODE
+        reload=DEBUG_MODE
     )

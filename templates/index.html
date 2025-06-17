@@ -35,8 +35,12 @@
                     <span>Chat</span>
                 </button>
                 <button class="menu-item" data-view="image-analysis">
-                    <i class="fas fa-image"></i>
+                    <i class="fas fa-search"></i>
                     <span>Image Analysis</span>
+                </button>
+                <button class="menu-item" data-view="image-generation">
+                    <i class="fas fa-palette"></i>
+                    <span>Image Generation</span>
                 </button>
                 <button class="menu-item" data-view="settings">
                     <i class="fas fa-cog"></i>
@@ -119,6 +123,87 @@
                 <div class="analysis-results" id="analysis-results" style="display: none;">
                     <h3>Analysis Results</h3>
                     <div class="result-content" id="result-content"></div>
+                </div>
+            </div>
+            
+            <!-- Image Generation View -->
+            <div class="view-container" id="image-generation-view">
+                <div class="view-header">
+                    <h2>Generate Images with DALL-E</h2>
+                    <p>Create unique images from your text descriptions</p>
+                </div>
+                
+                <div class="generation-layout">
+                    <!-- Left Panel: Controls -->
+                    <div class="generation-controls">
+                        <div class="prompt-section">
+                            <label for="generation-prompt">Describe the image you want to create:</label>
+                            <textarea id="generation-prompt" placeholder="Enter a detailed description of the image you want to generate..." rows="4"></textarea>
+                        </div>
+                        
+                        <div class="generation-options">
+                            <div class="option-group">
+                                <label for="image-style">Style:</label>
+                                <select id="image-style">
+                                    <option value="vivid">Vivid (more creative)</option>
+                                    <option value="natural">Natural (more realistic)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="option-group">
+                                <label for="image-quality">Quality:</label>
+                                <select id="image-quality">
+                                    <option value="standard">Standard</option>
+                                    <option value="hd">HD (higher cost)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="option-group">
+                                <label for="image-size">Size:</label>
+                                <select id="image-size">
+                                    <option value="1024x1024">Square (1024×1024)</option>
+                                    <option value="1792x1024">Landscape (1792×1024)</option>
+                                    <option value="1024x1792">Portrait (1024×1792)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <button id="generate-image" class="primary-button">
+                            <i class="fas fa-palette"></i>
+                            Generate Image
+                        </button>
+                    </div>
+                    
+                    <!-- Right Panel: Results -->
+                    <div class="generation-results" id="generation-results">
+                        <div class="results-placeholder" id="results-placeholder">
+                            <div class="placeholder-content">
+                                <i class="fas fa-image placeholder-icon"></i>
+                                <h3>Generated Image Will Appear Here</h3>
+                                <p>Enter a description and click "Generate Image" to create your artwork</p>
+                            </div>
+                        </div>
+                        
+                        <div class="results-content" id="results-content" style="display: none;">
+                            <h3>Generated Image</h3>
+                            <div class="generated-image-container">
+                                <img id="generated-image" src="" alt="Generated Image">
+                                <div class="image-actions">
+                                    <button id="download-image" class="secondary-button">
+                                        <i class="fas fa-download"></i>
+                                        Download
+                                    </button>
+                                    <button id="regenerate-image" class="secondary-button">
+                                        <i class="fas fa-redo"></i>
+                                        Regenerate
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="generation-info">
+                                <p><strong>Prompt used:</strong> <span id="used-prompt"></span></p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             

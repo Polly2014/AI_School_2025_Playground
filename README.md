@@ -5,7 +5,10 @@ This project demonstrates a personalized multimodal AI assistant with profile-dr
 ## Features
 
 - **Profile-Driven Personalization**: The assistant's behavior is driven by a personality profile that defines traits like openness, conscientiousness, extraversion, agreeableness, and emotional stability.
-- **Multimodal Interaction**: Supports both text chat and image analysis.
+- **Multimodal Interaction**: Supports text chat, image analysis, and image generation.
+- **Text Chat**: Interactive conversations with the AI assistant.
+- **Image Analysis**: Upload and analyze images using computer vision models.
+- **Image Generation**: Create unique images from text descriptions using DALL-E.
 - **Responsive UI**: Modern, responsive interface with light/dark theme support.
 - **Real-time Communication**: Uses REST APIs for communication with the backend.
 
@@ -40,7 +43,7 @@ demo/
 
 1. **Frontend**: HTML/CSS/JavaScript for the user interface
 2. **Backend**: FastAPI for the server
-3. **Multimodal Core**: Integration with large language models (LLMs) for text and vision processing
+3. **Multimodal Core**: Integration with large language models (LLMs) for text processing, computer vision for image analysis, and DALL-E for image generation
 4. **Personalization Engine**: Profile-driven personality model
 
 ## Quick Start
@@ -83,6 +86,11 @@ demo/
    ```env
    LLM_API_KEY=your_azure_openai_api_key_here
    LLM_API_ENDPOINT=https://your-resource.openai.azure.com/openai/deployments/your-model/chat/completions?api-version=2025-01-01-preview
+   
+   # For image generation (DALL-E)
+   DALLE_ENDPOINT=https://your-resource.openai.azure.com/
+   DALLE_DEPLOYMENT=dall-e-3
+   DALLE_API_KEY=your_azure_openai_api_key_here
    ```
 
 4. **Start the application**
@@ -105,6 +113,15 @@ demo/
 |----------|-------------|---------|
 | `LLM_API_KEY` | Azure OpenAI API key | `your_api_key_here` |
 | `LLM_API_ENDPOINT` | Azure OpenAI endpoint URL | `https://your-resource.openai.azure.com/...` |
+
+### Image Generation Variables
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `DALLE_ENDPOINT` | Azure OpenAI endpoint for DALL-E | None | `https://your-resource.openai.azure.com/` |
+| `DALLE_DEPLOYMENT` | DALL-E model deployment name | `dall-e-3` | `dall-e-3` |
+| `DALLE_API_KEY` | API key for DALL-E (can be same as LLM_API_KEY) | Same as LLM_API_KEY | `your_api_key_here` |
+| `DALLE_API_VERSION` | API version for DALL-E | `2024-04-01-preview` | `2024-04-01-preview` |
 
 ### Optional Variables
 

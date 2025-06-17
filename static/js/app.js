@@ -23,6 +23,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultContent = document.getElementById('result-content');
     const loadingOverlay = document.getElementById('loading-overlay');
     
+    // Image generation elements
+    const generateImageBtn = document.getElementById('generate-image');
+    const generationPrompt = document.getElementById('generation-prompt');
+    const regenerateBtn = document.getElementById('regenerate-image');
+    const downloadBtn = document.getElementById('download-image');
+    const generationResults = document.getElementById('generation-results');
+    const generatedImage = document.getElementById('generated-image');
+    const usedPrompt = document.getElementById('used-prompt');
+    const imageStyle = document.getElementById('image-style');
+    const imageQuality = document.getElementById('image-quality');
+    const imageSize = document.getElementById('image-size');
+    
     // State
     let sessionId = generateSessionId();
     let selectedFile = null;
@@ -151,6 +163,21 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Analyze image
         analyzeImageBtn.addEventListener('click', handleImageAnalysis);
+        
+        // Generate image
+        if (generateImageBtn) {
+            generateImageBtn.addEventListener('click', handleImageGeneration);
+        }
+        
+        // Regenerate image
+        if (regenerateBtn) {
+            regenerateBtn.addEventListener('click', handleImageRegeneration);
+        }
+        
+        // Download image
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', handleImageDownload);
+        }
     }
     
     /**
@@ -158,12 +185,19 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function setupTextareaAutoResize() {
         const textareas = [chatInput, imagePrompt];
+        const generationPrompt = document.getElementById('generation-prompt');
+        
+        if (generationPrompt) {
+            textareas.push(generationPrompt);
+        }
         
         textareas.forEach(textarea => {
-            textarea.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = (this.scrollHeight) + 'px';
-            });
+            if (textarea) {
+                textarea.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = (this.scrollHeight) + 'px';
+                });
+            }
         });
     }
     
@@ -392,5 +426,144 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function generateSessionId() {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    }
+    
+    /**
+     * Handle image generation
+     */
+    async function handleImageGeneration() {
+        const prompt = generationPrompt.value.trim();
+        if (!prompt) {
+            alert('Please enter a description for the image you want to generate.');
+            return;
+        }
+        
+        // Show loading state
+        generateImageBtn.disabled = true;
+        generateImageBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        document.querySelector('.generation-controls').classList.add('loading');
+        
+        // Hide placeholder and show loading in results
+        const resultsPlaceholder = document.getElementById('results-placeholder');
+        const resultsContent = document.getElementById('results-content');
+        resultsPlaceholder.style.display = 'none';
+        resultsContent.style.display = 'block';
+        resultsContent.innerHTML = '<div style="text-align: center; padding: 60px;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i><p style="margin-top: 15px;">Generating your image...</p></div>';
+        
+        try {
+            const response = await fetch('/api/image-generation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    style: imageStyle.value,
+                    quality: imageQuality.value,
+                    size: imageSize.value,
+                    session_id: sessionId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Show generated image
+                generatedImage.src = data.image_url;
+                generatedImage.alt = `Generated: ${data.prompt_used}`;
+                usedPrompt.textContent = data.prompt_used;
+                
+                // Update results content with the actual result
+                resultsContent.innerHTML = `
+                    <h3>Generated Image</h3>
+                    <div class="generated-image-container">
+                        <img id="generated-image" src="${data.image_url}" alt="Generated: ${data.prompt_used}">
+                        <div class="image-actions">
+                            <button id="download-image" class="secondary-button">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </button>
+                            <button id="regenerate-image" class="secondary-button">
+                                <i class="fas fa-redo"></i>
+                                Regenerate
+                            </button>
+                        </div>
+                    </div>
+                    <div class="generation-info">
+                        <p><strong>Prompt used:</strong> <span id="used-prompt">${data.prompt_used}</span></p>
+                    </div>
+                `;
+                
+                // Re-attach event listeners for new buttons
+                document.getElementById('download-image').addEventListener('click', handleImageDownload);
+                document.getElementById('regenerate-image').addEventListener('click', handleImageRegeneration);
+                
+                // Add animation if enabled
+                if (animationEnabled) {
+                    resultsContent.classList.add('fade-in');
+                }
+                
+            } else {
+                throw new Error(data.detail || 'Failed to generate image');
+            }
+            
+        } catch (error) {
+            console.error('Error generating image:', error);
+            resultsContent.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: var(--accent-color); margin-bottom: 15px;"></i>
+                    <h3>Generation Failed</h3>
+                    <p>Failed to generate image. Please try again.</p>
+                </div>
+            `;
+        } finally {
+            // Reset button state
+            generateImageBtn.disabled = false;
+            generateImageBtn.innerHTML = '<i class="fas fa-palette"></i> Generate Image';
+            document.querySelector('.generation-controls').classList.remove('loading');
+        }
+    }
+    
+    /**
+     * Handle image regeneration
+     */
+    async function handleImageRegeneration() {
+        const generationPrompt = document.getElementById('generation-prompt');
+        if (generationPrompt.value.trim()) {
+            await handleImageGeneration();
+        }
+    }
+    
+    /**
+     * Handle image download
+     */
+    async function handleImageDownload() {
+        const generatedImage = document.getElementById('generated-image');
+        const usedPrompt = document.getElementById('used-prompt');
+        
+        if (!generatedImage.src || generatedImage.src.includes('placeholder')) {
+            alert('No image to download.');
+            return;
+        }
+        
+        try {
+            // Fetch the image
+            const response = await fetch(generatedImage.src);
+            const blob = await response.blob();
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `generated-image-${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('Error downloading image:', error);
+            alert('Failed to download image. Please try again.');
+        }
     }
 });
