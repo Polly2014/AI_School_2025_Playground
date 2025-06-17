@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  multimodal-assistant:
+    build: .
+    container_name: multimodal-assistant
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_API_KEY=demo_key
+      - LLM_API_ENDPOINT=https://api.example.com/v1/chat/completions
+      - VISION_MODEL=gpt-4-vision-preview
+      - TEXT_MODEL=gpt-4
+    volumes:
+      - ./models:/app/models
+      - ./static:/app/static
+      - ./templates:/app/templates
+    restart: unless-stopped

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ assistant_name }} - Multimodal AI Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: {{ theme.color_scheme.primary }};
+            --secondary-color: {{ theme.color_scheme.secondary }};
+            --accent-color: {{ theme.color_scheme.accent }};
+            --background-color: {{ theme.color_scheme.background }};
+            --text-color: {{ theme.color_scheme.text }};
+        }
+    </style>
+</head>
+<body class="theme-{{ theme.visual_theme }}">
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="profile-section">
+                <div class="avatar-container">
+                    <img src="{{ url_for('static', path='/images/' + avatar) }}" alt="{{ assistant_name }}" class="avatar">
+                    <div class="status-indicator online"></div>
+                </div>
+                <h2 class="assistant-name">{{ assistant_name }}</h2>
+                <p class="assistant-role">AI Assistant</p>
+            </div>
+            
+            <div class="sidebar-menu">
+                <button class="menu-item active" data-view="chat">
+                    <i class="fas fa-comment-alt"></i>
+                    <span>Chat</span>
+                </button>
+                <button class="menu-item" data-view="image-analysis">
+                    <i class="fas fa-image"></i>
+                    <span>Image Analysis</span>
+                </button>
+                <button class="menu-item" data-view="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </button>
+            </div>
+            
+            <div class="sidebar-footer">
+                <p>Multimodal AI Assistant</p>
+                <p class="version">v1.0</p>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- Chat View -->
+            <div class="view-container active" id="chat-view">
+                <div class="chat-header">
+                    <h2>Chat with {{ assistant_name }}</h2>
+                    <div class="chat-actions">
+                        <button id="clear-chat" title="Clear chat">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message assistant-message">
+                        <div class="message-avatar">
+                            <img src="{{ url_for('static', path='/images/' + avatar) }}" alt="{{ assistant_name }}">
+                        </div>
+                        <div class="message-content">
+                            <div class="message-text">
+                                <p>Hello! I'm {{ assistant_name }}, your personalized AI assistant. How can I help you today?</p>
+                            </div>
+                            <div class="message-time">Just now</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-input-container">
+                    <textarea id="chat-input" placeholder="Type your message here..." rows="1"></textarea>
+                    <div class="input-actions">
+                        <button id="send-message" title="Send message">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Image Analysis View -->
+            <div class="view-container" id="image-analysis-view">
+                <div class="view-header">
+                    <h2>Image Analysis</h2>
+                </div>
+                
+                <div class="image-upload-container">
+                    <div class="upload-area" id="upload-area">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Drag & drop an image here or click to browse</p>
+                        <input type="file" id="image-upload" accept="image/*" hidden>
+                    </div>
+                    
+                    <div class="image-preview-container" id="image-preview-container" style="display: none;">
+                        <img id="image-preview" src="" alt="Preview">
+                        <button id="remove-image" title="Remove image">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="prompt-container">
+                        <textarea id="image-prompt" placeholder="Enter a prompt for image analysis (optional)..." rows="2"></textarea>
+                    </div>
+                    
+                    <button id="analyze-image" class="primary-button" disabled>
+                        <i class="fas fa-search"></i>
+                        Analyze Image
+                    </button>
+                </div>
+                
+                <div class="analysis-results" id="analysis-results" style="display: none;">
+                    <h3>Analysis Results</h3>
+                    <div class="result-content" id="result-content"></div>
+                </div>
+            </div>
+            
+            <!-- Settings View -->
+            <div class="view-container" id="settings-view">
+                <div class="view-header">
+                    <h2>Settings</h2>
+                </div>
+                
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h3>Appearance</h3>
+                        <div class="setting-item">
+                            <label for="theme-selector">Theme</label>
+                            <select id="theme-selector">
+                                <option value="light" {% if theme.visual_theme == "light" %}selected{% endif %}>Light</option>
+                                <option value="dark" {% if theme.visual_theme == "dark" %}selected{% endif %}>Dark</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label for="animation-level">Animation Level</label>
+                            <select id="animation-level">
+                                <option value="none" {% if theme.animation_level == "none" %}selected{% endif %}>None</option>
+                                <option value="minimal" {% if theme.animation_level == "minimal" %}selected{% endif %}>Minimal</option>
+                                <option value="moderate" {% if theme.animation_level == "moderate" %}selected{% endif %}>Moderate</option>
+                                <option value="high" {% if theme.animation_level == "high" %}selected{% endif %}>High</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>Assistant Personality</h3>
+                        <div class="personality-sliders">
+                            <div class="slider-item">
+                                <label for="openness-slider">Openness</label>
+                                <input type="range" id="openness-slider" min="0" max="100" value="80" disabled>
+                                <div class="slider-labels">
+                                    <span>Conventional</span>
+                                    <span>Innovative</span>
+                                </div>
+                            </div>
+                            
+                            <div class="slider-item">
+                                <label for="conscientiousness-slider">Conscientiousness</label>
+                                <input type="range" id="conscientiousness-slider" min="0" max="100" value="70" disabled>
+                                <div class="slider-labels">
+                                    <span>Flexible</span>
+                                    <span>Organized</span>
+                                </div>
+                            </div>
+                            
+                            <div class="slider-item">
+                                <label for="extraversion-slider">Extraversion</label>
+                                <input type="range" id="extraversion-slider" min="0" max="100" value="60" disabled>
+                                <div class="slider-labels">
+                                    <span>Reserved</span>
+                                    <span>Outgoing</span>
+                                </div>
+                            </div>
+                            
+                            <div class="slider-item">
+                                <label for="agreeableness-slider">Agreeableness</label>
+                                <input type="range" id="agreeableness-slider" min="0" max="100" value="90" disabled>
+                                <div class="slider-labels">
+                                    <span>Direct</span>
+                                    <span>Friendly</span>
+                                </div>
+                            </div>
+                            
+                            <div class="slider-item">
+                                <label for="neuroticism-slider">Emotional Stability</label>
+                                <input type="range" id="neuroticism-slider" min="0" max="100" value="80" disabled>
+                                <div class="slider-labels">
+                                    <span>Sensitive</span>
+                                    <span>Stable</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="settings-note">Note: Personality settings are read-only in this demo. In a full implementation, these would be adjustable.</p>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>About</h3>
+                        <p>Multimodal AI Assistant Demo</p>
+                        <p>This is a demonstration of a personalized multimodal AI assistant with profile-driven behavior.</p>
+                        <p>Version: 1.0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+    
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+</body>
+</html>
