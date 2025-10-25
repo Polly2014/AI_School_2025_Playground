@@ -1,16 +1,50 @@
 # Personalized Multimodal AI Digital Assistant
 
-This project demonstrates a personalized multimodal AI assistant with profile-driven behavior, capable of text chat and image analysis.
+This project demonstrates a personalized multimodal AI assistant with profile-driven behavior, capable of text chat, image analysis, and image generation.
+
+## 🎬 Demo Screenshots
+
+### Text Chat Interface
+Experience natural conversations with the AI assistant powered by GPT-4o.
+
+<p align="center">
+  <img src="screenshots/chat.png" alt="Chat Interface" width="800"/>
+</p>
+
+### Image Generation
+Create stunning images from text descriptions using DALL-E 3.
+
+<p align="center">
+  <img src="screenshots/image_generation.png" alt="Image Generation" width="800"/>
+</p>
+
+### Image Understanding
+Analyze and understand images with advanced vision AI capabilities.
+
+<p align="center">
+  <img src="screenshots/image_understanding.png" alt="Image Understanding" width="800"/>
+</p>
+
+---
 
 ## Features
 
 - **Profile-Driven Personalization**: The assistant's behavior is driven by a personality profile that defines traits like openness, conscientiousness, extraversion, agreeableness, and emotional stability.
 - **Multimodal Interaction**: Supports text chat, image analysis, and image generation.
-- **Text Chat**: Interactive conversations with the AI assistant.
+- **Text Chat**: Interactive conversations with the AI assistant powered by GPT-4o.
 - **Image Analysis**: Upload and analyze images using computer vision models.
-- **Image Generation**: Create unique images from text descriptions using DALL-E.
+- **Image Generation**: Create unique images from text descriptions using DALL-E 3.
 - **Responsive UI**: Modern, responsive interface with light/dark theme support.
-- **Real-time Communication**: Uses REST APIs for communication with the backend.
+- **Real-time Communication**: Uses REST APIs for seamless communication with the backend.
+- **Profile Customization**: Easily customize the AI's personality through JSON configuration.
+
+## 🎯 Use Cases
+
+- **Personal AI Assistant**: Daily task management and information queries
+- **Creative Projects**: Generate artwork and analyze visual content
+- **Learning Tool**: Interactive educational conversations
+- **Content Creation**: Brainstorming and creative writing assistance
+- **Image Analysis**: Understanding visual content and extracting information
 
 ## Project Structure
 
